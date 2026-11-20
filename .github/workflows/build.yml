@@ -15,9 +15,14 @@ jobs:
         run: |
           f=$(find project -name MainActivity.java | head -1)
           echo "Patching $f"
-          grep -q "import android.webkit.WebChromeClient;" "$f" || sed -i 's/import android.webkit.WebViewClient;/import android.webkit.WebViewClient;\nimport android.webkit.WebChromeClient;\nimport android.webkit.WebChromeClient.FileChooserParams;/' "$f"
+          for imp in android.webkit.ValueCallback android.webkit.WebChromeClient android.webkit.WebChromeClient.FileChooserParams; do
+            grep -q "import $imp;" "$f" || sed -i "s|import android.webkit.WebViewClient;|import $imp;\nimport android.webkit.WebViewClient;|" "$f"
+          done
           sed -i '/setOnRefreshListener/c\        swipe.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener(){ public void onRefresh(){ web.reload(); } });' "$f"
-          grep -n "OnRefreshListener\|WebChromeClient" "$f" | head -8
+          echo "--- imports ---"
+          grep -n "^import android.webkit" "$f"
+          echo "--- refresh ---"
+          grep -n "OnRefreshListener" "$f"
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
