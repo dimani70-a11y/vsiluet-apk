@@ -11,12 +11,13 @@ jobs:
           test -f project.zip
           unzip -o project.zip -d project
           ls -la project
-      - name: Patch missing imports
+      - name: Patch sources
         run: |
           f=$(find project -name MainActivity.java | head -1)
           echo "Patching $f"
           grep -q "import android.webkit.WebChromeClient;" "$f" || sed -i 's/import android.webkit.WebViewClient;/import android.webkit.WebViewClient;\nimport android.webkit.WebChromeClient;\nimport android.webkit.WebChromeClient.FileChooserParams;/' "$f"
-          grep -n "WebChromeClient" "$f" | head -5
+          sed -i '/setOnRefreshListener/c\        swipe.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener(){ public void onRefresh(){ web.reload(); } });' "$f"
+          grep -n "OnRefreshListener\|WebChromeClient" "$f" | head -8
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
