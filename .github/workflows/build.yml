@@ -11,6 +11,14 @@ jobs:
           test -f project.zip
           unzip -o project.zip -d project
           ls -la project
+      - name: Force signing passwords
+        run: |
+          f=project/app/build.gradle
+          echo "--- before ---"
+          grep -n "storePassword\|keyPassword" "$f" || true
+          sed -i "s/storePassword .*/storePassword 'ZqwtafwCrrhY'/; s/keyPassword .*/keyPassword '7fFTmhR4xsRx'/" "$f"
+          echo "--- after ---"
+          grep -n "storePassword\|keyPassword" "$f"
       - name: Patch sources
         run: |
           f=$(find project -name MainActivity.java | head -1)
