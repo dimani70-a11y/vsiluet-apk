@@ -1,0 +1,39 @@
+name: Build APK
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack project
+        run: unzip -o project.zip -d project
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: SDK packages
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Keystore
+        run: |
+          if [ -f keystore.jks ]; then
+            cp keystore.jks project/keystore.jks
+            echo "Using keystore from repo root"
+          else
+            keytool -genkeypair -keystore project/keystore.jks -alias app -keyalg RSA -keysize 2048 -validity 10000 -storepass 'ZqwtafwCrrhY' -keypass '7fFTmhR4xsRx' -dname 'CN=V Силуэт, O=Web2APK, C=RU'
+            echo "NEW keystore generated - SAVE IT for updates"
+          fi
+          printf 'alias: app\nstorepass: ZqwtafwCrrhY\nkeypass: 7fFTmhR4xsRx\nKEEP keystore.jks SAFE. Upload it to repo root so updates use the same key.\n' > KEYSTORE-INFO.txt
+      - name: Build release APK
+        run: cd project && gradle assembleRelease --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          if-no-files-found: error
+          path: |
+            project/app/build/outputs/apk/release/app-release.apk
+            project/keystore.jks
+            KEYSTORE-INFO.txt
