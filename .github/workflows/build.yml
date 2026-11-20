@@ -6,14 +6,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Unpack project
-        run: unzip -o project.zip -d project
-      - uses: actions/setup-java@v4
+        run: |
+          ls -la
+          unzip -o project.zip -d project
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
       - name: SDK packages
-        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
@@ -23,7 +26,7 @@ jobs:
             cp keystore.jks project/keystore.jks
             echo "Using keystore from repo root"
           else
-            keytool -genkeypair -keystore project/keystore.jks -alias app -keyalg RSA -keysize 2048 -validity 10000 -storepass 'ZqwtafwCrrhY' -keypass '7fFTmhR4xsRx' -dname 'CN=V Силуэт, O=Web2APK, C=RU'
+            keytool -genkeypair -keystore project/keystore.jks -alias app -keyalg RSA -keysize 2048 -validity 10000 -storepass 'ZqwtafwCrrhY' -keypass '7fFTmhR4xsRx' -dname 'CN=V Siluet, O=Web2APK, C=RU'
             echo "NEW keystore generated - SAVE IT for updates"
           fi
           printf 'alias: app\nstorepass: ZqwtafwCrrhY\nkeypass: 7fFTmhR4xsRx\nKEEP keystore.jks SAFE. Upload it to repo root so updates use the same key.\n' > KEYSTORE-INFO.txt
