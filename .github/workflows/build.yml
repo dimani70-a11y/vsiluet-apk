@@ -11,14 +11,6 @@ jobs:
           test -f project.zip
           unzip -o project.zip -d project
           ls -la project
-      - name: Force signing passwords
-        run: |
-          f=project/app/build.gradle
-          echo "--- before ---"
-          grep -n "storePassword\|keyPassword" "$f" || true
-          sed -i "s/storePassword .*/storePassword 'ZqwtafwCrrhY'/; s/keyPassword .*/keyPassword '7fFTmhR4xsRx'/" "$f"
-          echo "--- after ---"
-          grep -n "storePassword\|keyPassword" "$f"
       - name: Patch sources
         run: |
           f=$(find project -name MainActivity.java | head -1)
@@ -31,7 +23,6 @@ jobs:
         run: |
           f=project/app/build.gradle
           printf '\nconfigurations.all {\n    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22", "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22", "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"\n}\n' >> "$f"
-          tail -6 "$f"
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -55,16 +46,22 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
-      - name: Keystore
+      - name: Keystore and force passwords
         run: |
+          P='ZqwtafwCrrhY'
           if [ -f keystore.jks ]; then
             cp keystore.jks project/keystore.jks
             echo "Using keystore from repo root"
           else
-            keytool -genkeypair -keystore project/keystore.jks -alias app -keyalg RSA -keysize 2048 -validity 10000 -storepass 'ZqwtafwCrrhY' -keypass '7fFTmhR4xsRx' -dname 'CN=V Siluet, O=Web2APK, C=RU'
+            keytool -genkeypair -keystore project/keystore.jks -alias app -keyalg RSA -keysize 2048 -validity 10000 -storepass "$P" -keypass "$P" -dname 'CN=V Siluet, O=Web2APK, C=RU'
             echo "NEW keystore generated - SAVE IT for updates"
           fi
-          printf 'alias: app\nstorepass: ZqwtafwCrrhY\nkeypass: 7fFTmhR4xsRx\nKEEP keystore.jks SAFE. Upload it to repo root so updates use the same key.\n' > KEYSTORE-INFO.txt
+          keytool -list -keystore project/keystore.jks -storepass "$P" | head -8
+          f=project/app/build.gradle
+          printf "\nandroid.signingConfigs.release.storePassword = '%s'\nandroid.signingConfigs.release.keyPassword = '%s'\n" "$P" "$P" >> "$f"
+          echo "--- override appended ---"
+          tail -4 "$f"
+          printf 'alias: app\nstorepass: %s\nkeypass: %s\nKEEP keystore.jks SAFE. Upload it to repo root so updates use the same key.\n' "$P" "$P" > KEYSTORE-INFO.txt
       - name: Build release APK
         run: cd project && gradle assembleRelease --no-daemon
       - uses: actions/upload-artifact@v4
